@@ -31,6 +31,8 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add src/web/static/data/price_history.json
-        git commit -m "Update price history data" || exit 0
-        git push
+        git checkout gh-pages
+        git add data/
+        git add src/web/static/data/
+        git commit -m "Update price history data [skip ci]" || exit 0
+        git push origin gh-pages
