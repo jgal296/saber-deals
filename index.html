@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightsaber Deals</title>
+    <link rel="stylesheet" href="src/web/static/css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Current Lightsaber Deals</h1>
+        <nav>
+            <a href="price-history.html" class="nav-button">View Price History</a>
+        </nav>
+    </header>
+    <main id="deals-container">
+        <p>Loading deals...</p>
+    </main>
+    <footer>
+        <p id="current-year"></p>
+    </footer>
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear() + ' Lightsaber Deals';
+    </script>
+    <script src="src/web/static/js/main.js"></script>
+</body>
+</html>
