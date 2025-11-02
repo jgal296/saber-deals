@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Price History{% endblock %}
+
+{% block content %}
+<div class="price-history-container">
+    <div class="search-container">
+        <input type="text" id="product-search" placeholder="Search for a lightsaber...">
+        <div id="search-results" class="search-results"></div>
+    </div>
+    
+    <div id="price-chart-container">
+        <canvas id="priceChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/price_history.js') }}"></script>
+{% endblock %}

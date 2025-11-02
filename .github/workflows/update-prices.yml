@@ -1,0 +1,36 @@
+name: Update Price History
+
+on:
+  schedule:
+    - cron: '45 17 * * *'  # Run daily at midnight, testing for 5:45 PM UTC
+  workflow_dispatch:      # Allow manual triggers
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run scraper and export data
+      run: |
+        python src/scraper/disney_scraper.py
+        python src/utils/export_data.py
+        
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add src/web/static/data/price_history.json
+        git commit -m "Update price history data" || exit 0
+        git push

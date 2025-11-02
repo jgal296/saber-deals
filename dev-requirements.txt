@@ -1,0 +1,25 @@
+# Build and packaging
+setuptools==68.2.2
+wheel==0.41.3
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# Linting & Formatting
+black==23.10.1
+flake8==6.1.0
+isort==5.12.0
+mypy==1.6.1
+
+# Type checking
+types-requests==2.31.0.10
+types-beautifulsoup4==4.12.0.7
+
+# Development tools
+ipython==8.16.1
+python-dotenv==1.0.0
+
+# Debugging
+debugpy==1.8.0
