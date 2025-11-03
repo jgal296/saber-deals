@@ -2,7 +2,7 @@ name: Update Price History
 
 on:
   schedule:
-    - cron: '45 17 * * *'  # Run daily at midnight, testing for 5:45 PM UTC
+    - cron: '0 17 * * *'  # Run daily at midnight
   workflow_dispatch:      # Allow manual triggers
 
 jobs:
