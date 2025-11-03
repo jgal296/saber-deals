@@ -1,74 +1,50 @@
 import requests
 from bs4 import BeautifulSoup
-from typing import List, Dict
 import logging
+from datetime import datetime
+from sqlalchemy.orm import Session
+from ..models.database import SessionLocal
+from ..models.product import Product, PriceHistory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-def is_on_sale(item: BeautifulSoup) -> tuple[bool, dict]:
-    """
-    Determines if a product is on sale by checking multiple indicators.
-    Returns (is_sale, price_info)
-    """
-    price_info = {
-        'current_price': None,
-        'original_price': None,
-        'savings_percent': None,
-        'is_sale': False,
-        'reason': None
-    }
-
+def save_to_db(items: list) -> None:
+    """Save scraped items to database"""
+    db = SessionLocal()
     try:
-        # Method 1: Check for explicit sale markers
-        sale_badge = item.find(['span', 'div'], class_=['sale', 'discount', 'promotion'])
-        if sale_badge:
-            price_info['reason'] = f"Sale badge found: {sale_badge.get_text().strip()}"
-            price_info['is_sale'] = True
+        for item in items:
+            # Check if product exists
+            product = db.query(Product).filter(Product.url == item['url']).first()
+            
+            if not product:
+                product = Product(
+                    name=item['name'],
+                    url=item['url'],
+                    image_url=item['image_url']
+                )
+                db.add(product)
+                db.flush()  # Get product ID
+            
+            # Add price history
+            price_history = PriceHistory(
+                product_id=product.id,
+                price=float(item['price'].replace('$', '').replace(',', '')),
+                date=datetime.utcnow()
+            )
+            db.add(price_history)
+        
+        db.commit()
+        logger.info(f"Saved {len(items)} items to database")
+    
+    except Exception as e:
+        logger.error(f"Error saving to database: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
-        # Method 2: Compare prices
-        price_container = item.find(['div', 'span'], class_=['price', 'product-price'])
-        if price_container:
-            current = price_container.find(['span', 'div'], class_=['current-price', 'sale-price'])
-            original = price_container.find(['span', 'div'], class_=['original-price', 'list-price'])
-
-            if current and original:
-                current_text = current.get_text().strip()
-                original_text = original.get_text().strip()
-                
-                # Clean and convert prices
-                current_price = float(current_text.replace('$', '').replace(',', ''))
-                original_price = float(original_text.replace('$', '').replace(',', ''))
-
-                price_info['current_price'] = current_price
-                price_info['original_price'] = original_price
-
-                if current_price < original_price:
-                    savings = ((original_price - current_price) / original_price) * 100
-                    price_info['savings_percent'] = round(savings, 2)
-                    price_info['reason'] = f"Price reduced by {price_info['savings_percent']}%"
-                    price_info['is_sale'] = True
-
-        # Method 3: Look for special offer text
-        special_text = item.find(string=lambda s: s and any(word in s.lower() 
-            for word in ['sale', 'special offer', 'discount', 'save', 'reduced']))
-        if special_text:
-            price_info['reason'] = f"Special offer text found: {special_text.strip()}"
-            price_info['is_sale'] = True
-
-        return price_info['is_sale'], price_info
-
-    except (AttributeError, ValueError) as e:
-        logger.debug(f"Error checking sale status: {e}")
-        return False, price_info
-
-
-def fetch_deals() -> List[Dict]:
-    """
-    Scrapes Disney Store website for lightsaber deals.
-    Returns a list of dictionaries containing deal information.
-    """
+def fetch_deals():
+    """Fetch all lightsaber products from Disney Store"""
     url = "https://www.disneystore.com/collectibles/lightsabers-and-relics/"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
@@ -77,90 +53,100 @@ def fetch_deals() -> List[Dict]:
         'Connection': 'keep-alive',
     }
     
-    # Initialize deals list
-    deals = []
-    
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         
-        logger.info(f"Status Code: {response.status_code}")
-        logger.info(f"Content Length: {len(response.text)}")
-        
-        soup = BeautifulSoup(response.text, 'lxml')
-        
         # Save HTML for debugging
         with open('disney_response.html', 'w', encoding='utf-8') as f:
-            f.write(soup.prettify())
+            f.write(response.text)
+            logger.info(f"Saved HTML response to disney_response.html")
         
-        # First, let's analyze what we got
-        logger.debug("HTML structure sample:")
-        for tag in list(soup.children)[:5]:
-            logger.debug(f"Found tag: {tag.name if hasattr(tag, 'name') else 'NavigableString'}")
-        
-        # Try different possible selectors
+        soup = BeautifulSoup(response.text, 'lxml')
         items = []
-        selectors = [
-            'div.product',  # This one worked previously
-            'article.product',
-            'div[data-component="product"]',
-            '.product-grid-item'
-        ]
-        
-        for selector in selectors:
-            items = soup.select(selector)
-            if items:
-                logger.info(f"Found items using selector: {selector}")
-                break
-        
-        logger.info(f"Found {len(items)} items")
-        
-        # Debug first item structure
-        if items:
-            logger.debug(f"First item HTML structure: {items[0].prettify()}")
-        
-        for item in items:
-            is_sale, price_info = is_on_sale(item)
-            if is_sale:
-                try:
-                    name_elem = item.find(['h2', 'h3', 'div'], class_=['product-title', 'title'])
-                    image = item.find('img')
-                    link = item.find('a')
-                    
-                    if all([name_elem, image, link]):
-                        deal = {
-                            'name': name_elem.get_text().strip(),
-                            'price': f"${price_info['current_price']:.2f}",
-                            'original_price': f"${price_info['original_price']:.2f}" if price_info['original_price'] else None,
-                            'savings_percent': price_info['savings_percent'],
-                            'sale_reason': price_info['reason'],
-                            'image_url': image.get('src', image.get('data-src', '')),
-                            'url': link.get('href', ''),
-                        }
-                        deals.append(deal)
-                        logger.info(f"Found deal: {deal['name']}")
-                        logger.info(f"Reason: {deal['sale_reason']}")
-                
-                except (AttributeError, KeyError) as e:
-                    logger.error(f"Error parsing item: {e}")
-                    continue
+
+        # Find all product divs directly
+        products = soup.find_all('div', class_='product')
+        if not products:
+            logger.error("No products found with class 'product'")
+            # Try alternative selectors
+            products = soup.select('div[class*="product-"], div[data-product]')
             
-            return deals
+        logger.info(f"Found {len(products)} products")
+        
+        for product in products:
+            try:
+                # Try multiple selectors for each element
+                name_elem = (
+                    product.find(['h2', 'h3', 'div'], class_=lambda x: x and 'title' in x.lower()) or
+                    product.find(['h2', 'h3', 'div'], class_=lambda x: x and 'name' in x.lower())
+                )
+                
+                link_elem = product.find('a')
+                
+                # Updated image element handling
+                img_elem = product.find('img')
+                img_url = None
+                if img_elem:
+                    # Try different image source attributes
+                    img_url = (
+                        img_elem.get('src') or 
+                        img_elem.get('data-src') or 
+                        img_elem.get('data-lazy-src') or
+                        img_elem.get('srcset', '').split(',')[0].strip().split(' ')[0]
+                    )
+                
+                price_elem = (
+                    product.find(['span', 'div'], class_=lambda x: x and 'price' in x.lower()) or
+                    product.find(['span', 'div'], string=lambda x: x and '$' in x)
+                )
+
+                # Debug element finding
+                if name_elem:
+                    logger.debug(f"Found name: {name_elem.text.strip()}")
+                if link_elem:
+                    logger.debug(f"Found link: {link_elem.get('href', '')}")
+                if img_url:
+                    logger.debug(f"Found image: {img_url}")
+                if price_elem:
+                    logger.debug(f"Found price: {price_elem.text.strip()}")
+
+                if all([name_elem, link_elem, img_url, price_elem]):
+                    base_url = 'https://www.disneystore.com'
+                    item = {
+                        'name': name_elem.text.strip(),
+                        'url': base_url + link_elem['href'] if not link_elem['href'].startswith('http') else link_elem['href'],
+                        'image_url': img_url if img_url.startswith('http') else base_url + img_url,
+                        'price': price_elem.text.strip()
+                    }
+                    items.append(item)
+                    logger.info(f"Found product: {item['name']} - {item['price']}")
+                else:
+                    missing = []
+                    if not name_elem: missing.append('name')
+                    if not link_elem: missing.append('link')
+                    if not img_url: missing.append('image')
+                    if not price_elem: missing.append('price')
+                    logger.warning(f"Skipping product - missing elements: {', '.join(missing)}")
+            
+            except Exception as e:
+                logger.error(f"Error parsing product: {str(e)}")
+                logger.debug(f"Product HTML causing error:\n{product.prettify()}")
+                continue
+
+        logger.info(f"Successfully parsed {len(items)} products")
+        
+        if items:
+            save_to_db(items)
+        else:
+            logger.warning("No valid products found to save")
+            
+        return items
         
     except requests.RequestException as e:
         logger.error(f"Error fetching deals: {e}")
         return []
 
-def calculate_savings(current: str, original: str) -> str:
-    """Calculate percentage savings"""
-    try:
-        current_price = float(current.replace('$', '').replace(',', ''))
-        original_price = float(original.replace('$', '').replace(',', ''))
-        savings = ((original_price - current_price) / original_price) * 100
-        return f"{savings:.0f}% OFF"
-    except (ValueError, ZeroDivisionError):
-        return ""
-
 if __name__ == "__main__":
     deals = fetch_deals()
-    print(f"Found {len(deals)} deals")
+    print(f"Found {len(deals)} items")
