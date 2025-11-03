@@ -2,8 +2,8 @@ name: Update Price History
 
 on:
   schedule:
-    - cron: '0 17 * * *'  # Run daily at midnight
-  workflow_dispatch:      # Allow manual triggers
+    - cron: '0 17 * * *'  # 12:00 PM EST
+  workflow_dispatch:
 
 jobs:
   update-prices:
@@ -11,6 +11,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: gh-pages
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -24,14 +26,14 @@ jobs:
         
     - name: Run scraper and export data
       run: |
-        python src/scraper/disney_scraper.py
-        python src/utils/export_data.py
+        python -m src.scraper.disney_scraper
+        python -m src.utils.export_data
         
     - name: Commit and push if changes
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git checkout gh-pages
         git add data/price_history.json
+        git add src/web/static/data/
         git commit -m "Update price history data [skip ci]" || exit 0
-        git push origin gh-pages
+        git push

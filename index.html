@@ -13,15 +13,46 @@
             <a href="price-history.html" class="nav-button">View Price History</a>
         </nav>
     </header>
-    <main id="deals-container">
-        <p>Loading deals...</p>
+    <main>
+        <div id="deals-container" class="deals-grid">
+            <p class="loading">Loading deals...</p>
+        </div>
     </main>
     <footer>
         <p id="current-year"></p>
     </footer>
+
     <script>
-        document.getElementById('current-year').textContent = new Date().getFullYear() + ' Lightsaber Deals';
+        // Set current year
+        document.getElementById('current-year').textContent = `${new Date().getFullYear()} Lightsaber Deals`;
+
+        // Load deals from static JSON
+        async function loadDeals() {
+            try {
+                const response = await fetch('data/price_history.json');
+                const data = await response.json();
+                const dealsContainer = document.getElementById('deals-container');
+                
+                if (!data.products || data.products.length === 0) {
+                    dealsContainer.innerHTML = '<p>No current deals available.</p>';
+                    return;
+                }
+                
+                dealsContainer.innerHTML = data.products.map(product => `
+                    <div class="deal-card">
+                        <img src="${product.image_url}" alt="${product.name}">
+                        <h2>${product.name}</h2>
+                        <p class="price">$${product.price}</p>
+                        <a href="${product.url}" class="btn" target="_blank">View Deal</a>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading deals:', error);
+                dealsContainer.innerHTML = '<p class="error">Error loading deals</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDeals);
     </script>
-    <script src="src/web/static/js/main.js"></script>
 </body>
 </html>
