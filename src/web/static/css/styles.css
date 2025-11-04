@@ -32,7 +32,10 @@ h1 {
 }
 
 .deal img {
-    max-width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 400px; /* Cap the width of the image */
     height: auto;
 }
 
