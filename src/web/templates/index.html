@@ -14,24 +14,63 @@
         </nav>
     </header>
     <main>
-        {% if deals %}
-            <ul>
-                {% for deal in deals %}
-                    <li>
-                        <h2>{{ deal.title }}</h2>
-                        <img src="{{ deal.image_url }}" alt="{{ deal.title }}">
-                        <p>{{ deal.description }}</p>
-                        <p>Price: {{ deal.price }}</p>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No current deals available.</p>
-        {% endif %}
+        <div id="deals-container" class="deals-grid">
+            <p class="loading">Loading deals...</p>
+        </div>
     </main>
     <footer>
-        <p>{{ current_year }} Lightsaber Deals</p>
+        <p id="current-year"></p>
     </footer>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+        async function loadDeals() {
+            try {
+                let data;
+                console.log('Attempting to load deals...');
+                
+                try {
+                    const apiResponse = await fetch('/api/deals');
+                    if (apiResponse.ok) {
+                        data = await apiResponse.json();
+                        console.log('Loaded data from API:', data);
+                    }
+                } catch (e) {
+                    console.log('API fetch failed, trying static file...');
+                    const staticResponse = await fetch('data/price_history.json');
+                    if (!staticResponse.ok) {
+                        throw new Error(`Failed to load static data: ${staticResponse.status}`);
+                    }
+                    data = await staticResponse.json();
+                    console.log('Loaded static data:', data);
+                }
+
+                const dealsContainer = document.getElementById('deals-container');
+                
+                if (!data || !data.products || data.products.length === 0) {
+                    console.log('No data found:', data);
+                    dealsContainer.innerHTML = '<p>No deals available</p>';
+                    return;
+                }
+
+                dealsContainer.innerHTML = data.products.map(product => `
+                    <div class="deal-card">
+                        <img src="${product.image_url}" alt="${product.name}">
+                        <h2>${product.name}</h2>
+                        <p class="price">$${product.price}</p>
+                        <a href="${product.url}" class="btn" target="_blank">View Deal</a>
+                    </div>
+                `).join('');
+                console.log(`Rendered ${data.products.length} products`);
+            } catch (error) {
+                console.error('Error loading deals:', error);
+                document.getElementById('deals-container').innerHTML = 
+                    '<p class="error">Error loading deals. Please try again later.</p>';
+            }
+        }
+
+        document.getElementById('current-year').textContent = 
+            `${new Date().getFullYear()} Lightsaber Deals`;
+        document.addEventListener('DOMContentLoaded', loadDeals);
+    </script>
 </body>
 </html>

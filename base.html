@@ -3,19 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saber Deals - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <title>{% block title %}Lightsaber Deals{% endblock %}</title>
 </head>
 <body>
     <header>
-        <h1>Lightsaber Deals</h1>
+        <h1>Saber Deals</h1>
     </header>
+    
     <main>
         {% block content %}{% endblock %}
     </main>
+
     <footer>
-        <p>&copy; {{ current_year }} Lightsaber Deals</p>
+        <p>Updated daily with the latest lightsaber deals</p>
     </footer>
+    
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
+
+{% extends "base.html" %}
+
+{% block title %}Latest Deals{% endblock %}
+
+{% block content %}
+    <section class="deals">
+        {% if deals %}
+            {% for deal in deals %}
+                <article class="deal-card">
+                    {% if deal.image_url %}
+                        <img src="{{ deal.image_url }}" alt="{{ deal.name }}">
+                    {% endif %}
+                    <h2>{{ deal.name }}</h2>
+                    <p class="price">{{ deal.price }}</p>
+                    {% if deal.original_price %}
+                        <p class="original-price">Was: {{ deal.original_price }}</p>
+                    {% endif %}
+                    <p class="description">{{ deal.description }}</p>
+                    {% if deal.url %}
+                        <a href="{{ deal.url }}" class="btn" target="_blank">View Deal</a>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="no-deals">No deals found at the moment. Check back later!</p>
+        {% endif %}
+    </section>
+{% endblock %}

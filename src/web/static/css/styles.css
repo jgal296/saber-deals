@@ -31,14 +31,6 @@ h1 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.deal img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 400px; /* Cap the width of the image */
-    height: auto;
-}
-
 footer {
     text-align: center;
     padding: 10px 0;
@@ -68,10 +60,14 @@ body {
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
 }
 
 .deal-card img {
-    width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 400px; /* Cap the width of the image */
     height: auto;
     border-radius: 4px;
 }
