@@ -28,12 +28,14 @@ jobs:
       run: |
         python -m src.scraper.disney_scraper
         python -m src.utils.export_data
+        # Ensure data directory exists in root for GitHub Pages
+        mkdir -p data
+        cp data/price_history.json data/
         
     - name: Commit and push if changes
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add data/price_history.json
-        git add src/web/static/data/
         git commit -m "Update price history data [skip ci]" || exit 0
-        git push
+        git push origin gh-pages

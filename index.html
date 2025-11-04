@@ -20,25 +20,38 @@
     </main>
     <footer>
         <p id="current-year"></p>
-        <h1>TEST</h1>
     </footer>
 
     <script>
-        // Set current year
-        document.getElementById('current-year').textContent = `${new Date().getFullYear()} Lightsaber Deals`;
-
-        // Load deals from static JSON
         async function loadDeals() {
             try {
-                const response = await fetch('data/price_history.json');
-                const data = await response.json();
+                let data;
+                console.log('Attempting to load deals...');
+                
+                try {
+                    const apiResponse = await fetch('/api/deals');
+                    if (apiResponse.ok) {
+                        data = await apiResponse.json();
+                        console.log('Loaded data from API:', data);
+                    }
+                } catch (e) {
+                    console.log('API fetch failed, trying static file...');
+                    const staticResponse = await fetch('data/price_history.json');
+                    if (!staticResponse.ok) {
+                        throw new Error(`Failed to load static data: ${staticResponse.status}`);
+                    }
+                    data = await staticResponse.json();
+                    console.log('Loaded static data:', data);
+                }
+
                 const dealsContainer = document.getElementById('deals-container');
                 
-                if (!data.products || data.products.length === 0) {
-                    dealsContainer.innerHTML = '<p>No current deals available.</p>';
+                if (!data || !data.products || data.products.length === 0) {
+                    console.log('No data found:', data);
+                    dealsContainer.innerHTML = '<p>No deals available</p>';
                     return;
                 }
-                
+
                 dealsContainer.innerHTML = data.products.map(product => `
                     <div class="deal-card">
                         <img src="${product.image_url}" alt="${product.name}">
@@ -47,12 +60,16 @@
                         <a href="${product.url}" class="btn" target="_blank">View Deal</a>
                     </div>
                 `).join('');
+                console.log(`Rendered ${data.products.length} products`);
             } catch (error) {
                 console.error('Error loading deals:', error);
-                dealsContainer.innerHTML = '<p class="error">Error loading deals</p>';
+                document.getElementById('deals-container').innerHTML = 
+                    '<p class="error">Error loading deals. Please try again later.</p>';
             }
         }
 
+        document.getElementById('current-year').textContent = 
+            `${new Date().getFullYear()} Lightsaber Deals`;
         document.addEventListener('DOMContentLoaded', loadDeals);
     </script>
 </body>

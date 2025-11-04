@@ -1,10 +1,11 @@
 import sys
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from pathlib import Path
 from src.scraper.disney_scraper import fetch_deals
 from sqlalchemy import or_
 from src.models.database import get_db
 from src.models.product import Product, PriceHistory
+import json
 
 # Get absolute paths
 ROOT_DIR = Path(__file__).parent
@@ -86,6 +87,23 @@ def get_price_history(product_id):
         return jsonify({'error': 'Failed to fetch price history'}), 500
     finally:
         db.close()
+
+@app.route('/api/deals')
+def get_deals():
+    try:
+        json_path = ROOT_DIR / "data" / "price_history.json"
+        if json_path.exists():
+            with open(json_path, 'r') as f:
+                return jsonify(json.load(f))
+        return jsonify({"products": []})
+    except Exception as e:
+        app.logger.error(f"Error loading deals: {e}")
+        return jsonify({"error": "Failed to load deals"}), 500
+
+# Add this to serve data files directly
+@app.route('/data/<path:filename>')
+def serve_data(filename):
+    return send_from_directory(ROOT_DIR / "data", filename)
 
 if __name__ == '__main__':
     # Verify paths exist

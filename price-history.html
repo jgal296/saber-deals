@@ -1,32 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price History - Lightsaber Deals</title>
-    <link rel="stylesheet" href="src/web/static/css/styles.css">
-</head>
-<body>
-    <header>
-        <h1>Lightsaber Price History</h1>
-        <nav>
-            <a href="index.html" class="nav-button">Back to Deals</a>
-        </nav>
-    </header>
-    <div class="price-history-container">
-        <div class="search-container">
-            <form id="search-form" class="search-form">
-                <input type="text" id="product-search" placeholder="Search for a lightsaber...">
-                <button type="submit" class="search-button">Search</button>
-            </form>
-            <div id="search-results" class="search-results"></div>
-        </div>
-        
-        <div id="price-chart-container">
-            <canvas id="priceChart"></canvas>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Price History{% endblock %}
+
+{% block content %}
+<div class="price-history-container">
+    <div class="search-container">
+        <form id="search-form" class="search-form">
+            <input type="text" id="product-search" placeholder="Search for a lightsaber...">
+            <button type="submit" class="search-button">Search</button>
+        </form>
+        <div id="search-results" class="search-results"></div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="src/web/static/js/price_history.js"></script>
-</body>
-</html>
+    
+    <div id="price-chart-container">
+        <canvas id="priceChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/price_history.js') }}"></script>
+{% endblock %}
